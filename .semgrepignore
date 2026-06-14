@@ -1,0 +1,14 @@
+# Ignore all dependency and build directories
+node_modules/
+venv/
+dist/
+build/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.next/
+coverage/
+.pytest_cache/
+htmlcov/
+*.egg-info/

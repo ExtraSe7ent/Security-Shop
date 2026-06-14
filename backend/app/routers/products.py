@@ -1,85 +1,140 @@
-import os
-from fastapi import APIRouter, Depends, HTTPException
+"""
+Products router — VULNERABILITY #1: SQL Injection → Credit Card Data Theft
+
+BASE MODE:  Raw SQL string concatenation → attacker can UNION-inject and dump card data.
+SECURE MODE: SQLAlchemy ORM (parameterized queries) + card_number_plain is always empty.
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import re
+
 from app.database import get_db
-from app.models.models import Product
+from app.config import is_secure
+from app.models import Product, Review, PaymentMethod
+from app.schemas import ProductOut
 
-router = APIRouter()
+router = APIRouter(prefix="/api/products", tags=["Products"])
 
 
-@router.get("/")
-def get_products(db: Session = Depends(get_db)):
+@router.get("", response_model=list[ProductOut])
+def list_products(db: Session = Depends(get_db)):
     return db.query(Product).all()
 
 
 @router.get("/search")
-def search_products(q: str = "", db: Session = Depends(get_db)):
-    mode = os.getenv("MODE", "secure")
-    if mode == "vuln":
-        # ⚠️ VULN: nối chuỗi trực tiếp → SQL Injection
-        raw_sql = f"SELECT id, name, CAST(price AS TEXT) FROM products WHERE name ILIKE '%{q}%'"
-        results = db.execute(text(raw_sql)).fetchall()
-        return [{"id": r[0], "name": r[1], "price": r[2]} for r in results]
+def search_products(
+    q: str = Query("", description="Search query"),
+    db: Session = Depends(get_db)
+):
+    """
+    BASE MODE:  Raw SQL — vulnerable to UNION-based SQL Injection.
+    SECURE MODE: ORM parameterized query + AES-256 encrypted card storage.
+    """
+    if not q:
+        products = db.query(Product).all()
+        return {"results": [_product_to_dict(p) for p in products], "mode": "secure" if is_secure() else "base"}
+
+    if is_secure():
+        # SECURE Layer 1a: Input length validation — reject oversized queries
+        if len(q) > 200:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Search query too long",
+                    "reason": "Search query must not exceed 200 characters",
+                    "defense": "Layer 1: Length validation — prevents large payload injection attacks",
+                }
+            )
+
+        # SECURE Layer 1b: WAF-like input validation — block SQL injection keyword patterns
+        SQL_INJECTION_PATTERNS = [
+            r'\bunion\b', r'\bselect\b', r'\bdrop\b', r'\binsert\b',
+            r'\bupdate\b', r'\bdelete\b', r'\bexec\b', r'\bexecute\b',
+            r'--', r'/\*', r'\*/', r'\bor\b\s+\d', r'\band\b\s+\d',
+            r"'", r'"',
+        ]
+        for pattern in SQL_INJECTION_PATTERNS:
+            if re.search(pattern, q, re.IGNORECASE):
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "Invalid search query",
+                        "reason": "Suspicious input pattern detected and blocked by WAF layer",
+                        "defense": "Layer 1: WAF keyword filter rejected this request before reaching the database",
+                    }
+                )
+
+        # SECURE Layer 2: ORM parameterized query — injection impossible even without Layer 1
+        products = db.query(Product).filter(Product.name.ilike(f"%{q}%")).all()
+
+        sample_card = db.query(PaymentMethod).first()
+        encrypted_sample = sample_card.card_number_encrypted[:40] + "..." if sample_card else "N/A"
+
+        return {
+            "results": [_product_to_dict(p) for p in products],
+            "mode": "secure",
+            "defense": [
+                "Layer 1: WAF keyword filter — SQL keywords (UNION/SELECT/DROP) blocked at API gateway",
+                "Layer 2: SQLAlchemy ORM (parameterized queries) — injection impossible",
+                "Layer 3: card_number_plain is EMPTY — only AES-256 encrypted ciphertext stored",
+            ],
+            "attack_chain_demo": {
+                "plain_text_column": "(empty — not stored in secure mode)",
+                "encrypted_column_sample": encrypted_sample,
+                "explanation": "Even if an attacker bypassed Layer 1 & 2, they would only find encrypted gibberish in Layer 3",
+            }
+        }
+
     else:
-        # ✅ SECURE: parameterized query
-        results = db.query(Product).filter(
-            Product.name.ilike(f"%{q}%")
-        ).all()
-        return [{"id": p.id, "name": p.name, "price": p.price} for p in results]
+        # BASE: Raw SQL with string concatenation — intentionally vulnerable for demo.
+        raw_query = f"SELECT id, name, name_vi, description, description_vi, price, image_url, category, stock, rating FROM products WHERE name ILIKE '%{q}%'"
+        try:
+            result = db.execute(text(raw_query))
+            rows = result.fetchall()
+            columns = result.keys()
+            return {
+                "results": [dict(zip(columns, row)) for row in rows],
+                "mode": "base",
+                "warning": "⚠️ Raw SQL concatenation — vulnerable to SQL Injection!",
+                "query_executed": raw_query,
+            }
+        except Exception as e:
+            return {"results": [], "mode": "base", "error": str(e), "query_attempted": raw_query}
 
 
 @router.get("/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product
+        return {"error": "Product not found"}
 
-
-@router.post("/seed")
-def seed_products(db: Session = Depends(get_db)):
-    if db.query(Product).count() > 0:
-        return {"message": "Products already exist"}
-
-    samples = [
-        Product(
-            name="iPhone 15 Pro",
-            description="Apple's latest flagship with A17 Pro chip and titanium design",
-            price=29990000, stock=50, category="Smartphones",
-            image_url="https://images.unsplash.com/photo-1592286927505-1def25115558?w=400&h=300&fit=crop"
-        ),
-        Product(
-            name="Samsung Galaxy S24",
-            description="Android flagship 2024 with AI-powered camera system",
-            price=22990000, stock=30, category="Smartphones",
-            image_url="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&h=300&fit=crop"
-        ),
-        Product(
-            name="MacBook Air M3",
-            description="Ultra-thin laptop with 18-hour battery life",
-            price=32990000, stock=20, category="Laptops",
-            image_url="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=300&fit=crop"
-        ),
-        Product(
-            name="AirPods Pro 2",
-            description="Best-in-class active noise cancellation earbuds",
-            price=6490000, stock=100, category="Accessories",
-            image_url="https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400&h=300&fit=crop"
-        ),
-        Product(
-            name="iPad Air M2",
-            description="Versatile tablet with Liquid Retina display",
-            price=16990000, stock=40, category="Tablets",
-            image_url="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=300&fit=crop"
-        ),
-        Product(
-            name="Dell XPS 15",
-            description="Premium Windows laptop for creative professionals",
-            price=42990000, stock=15, category="Laptops",
-            image_url="https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=300&fit=crop"
-        ),
+    reviews = db.query(Review).filter(Review.product_id == product_id).all()
+    review_list = [
+        {
+            "id": r.id,
+            "content": r.content,
+            "rating": r.rating,
+            "username": r.user.username if r.user else "Anonymous",
+            "created_at": str(r.created_at),
+        }
+        for r in reviews
     ]
-    db.add_all(samples)
-    db.commit()
-    return {"message": f"Added {len(samples)} sample products"}
+
+    return {"product": _product_to_dict(product), "reviews": review_list}
+
+
+def _product_to_dict(p: Product) -> dict:
+    return {
+        "id": p.id,
+        "name": p.name,
+        "name_vi": p.name_vi,
+        "description": p.description,
+        "description_vi": p.description_vi,
+        "price": p.price,
+        "image_url": p.image_url,
+        "category": p.category,
+        "stock": p.stock,
+        "rating": p.rating,
+    }

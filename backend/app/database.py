@@ -1,26 +1,38 @@
+"""
+Database engine and session management.
+"""
+
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import os
-from dotenv import load_dotenv
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-load_dotenv()  # đọc file .env
+from app.config import get_settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+settings = get_settings()
 
-# Tạo kết nối tới PostgreSQL
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+)
 
-# Mỗi request tới API sẽ dùng 1 session riêng
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class cho tất cả models (bảng database)
-Base = declarative_base()
 
-# Hàm này được gọi trong mọi API endpoint để lấy DB session
+class Base(DeclarativeBase):
+    """SQLAlchemy 2.0-style declarative base — replaces the deprecated declarative_base() function."""
+    pass
+
+
 def get_db():
+    """Dependency that provides a database session per request."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+def init_db():
+    """Create all tables defined by SQLAlchemy models."""
+    Base.metadata.create_all(bind=engine)

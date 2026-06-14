@@ -1,25 +1,52 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import ProductsPage from './pages/ProductsPage'
-import CartPage from './pages/CartPage'
-import OrdersPage from './pages/OrdersPage'
-import AdminPage from './pages/AdminPage'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
+import { LangProvider } from './contexts/LangContext';
+import { ModeProvider } from './contexts/ModeContext';
+
+import Navbar from './components/Navbar';
+import CartDrawer from './components/CartDrawer';
+import ChatWidget from './components/ChatWidget';
+import Footer from './components/Footer';
+
+import Home from './pages/Home';
+import ProductDetail from './pages/ProductDetail';
+import Checkout from './pages/Checkout';
+import Orders from './pages/Orders';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ShipperPortal from './pages/ShipperPortal';
+
+import './App.css';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/products" />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/products" element={<ProductsPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-      </Routes>
-    </BrowserRouter>
-  )
+    <Router>
+      <LangProvider>
+        <AuthProvider>
+          <ModeProvider>
+            <CartProvider>
+              <Navbar />
+              <CartDrawer />
+              <main>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/products/:id" element={<ProductDetail />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/shipper" element={<ShipperPortal />} />
+                </Routes>
+              </main>
+              <Footer />
+              <ChatWidget />
+            </CartProvider>
+          </ModeProvider>
+        </AuthProvider>
+      </LangProvider>
+    </Router>
+  );
 }
 
-export default App
+export default App;

@@ -1,152 +1,115 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
+import { Link, useLocation } from 'react-router-dom';
+import { ShoppingCart, Shield, Home, Package, LogIn, LogOut, UserPlus, Globe, Truck } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
+import { useLang } from '../contexts/LangContext';
+import { useMode } from '../contexts/ModeContext';
 
-export default function Navbar({ onCartUpdate }) {
-  const navigate = useNavigate()
-  const username = localStorage.getItem('username')
-  const token = localStorage.getItem('token')
-  const [cartCount, setCartCount] = useState(0)
+export default function Navbar() {
+  const { user, logout } = useAuth();
+  const { totalItems, setIsOpen } = useCart();
+  const { toggleLang, t } = useLang();
+  const { mode, toggleMode, loading: modeLoading } = useMode();
+  const location = useLocation();
 
-  const fetchCartCount = async () => {
-    if (!token) { setCartCount(0); return }
-    try {
-      const res = await axios.get('http://localhost:8000/api/cart/', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setCartCount(res.data.length)
-    } catch {
-      setCartCount(0)
-    }
-  }
-
-  useEffect(() => {
-    fetchCartCount()
-  }, [token, onCartUpdate])
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('username')
-    navigate('/login')
-  }
+  const isActive = (path) => location.pathname === path ? 'navbar-link active' : 'navbar-link';
 
   return (
-    <nav style={styles.nav}>
-      <Link to="/products" style={styles.logo}>🛡️ SecurityShop</Link>
-      <div style={styles.navRight}>
-        {token ? (
-          <>
-            <Link to="/cart" style={styles.navLink}>
-              🛒 Cart
-              {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
-            </Link>
-            <Link to="/orders" style={styles.navLink}>📦 Orders</Link>
-            <Link to="/admin" style={styles.navLink}>⚙️ Admin</Link>
-            <span style={styles.divider}>|</span>
-            <span style={styles.navUser}>👤 {username}</span>
-            <button style={styles.logoutBtn} onClick={handleLogout}>Logout</button>
-          </>
-        ) : (
-          <>
-            <button style={styles.btnOutline} onClick={() => navigate('/login')}>Sign In</button>
-            <button style={styles.btnPrimary} onClick={() => navigate('/register')}>Register</button>
-          </>
-        )}
-      </div>
-    </nav>
-  )
-}
+    <>
+      <div className={`mode-bar ${mode}`} />
+      <nav className="navbar" id="main-navbar">
+        <div className="navbar-inner">
+          {/* Brand */}
+          <Link to="/" className="navbar-brand">
+            <Shield size={22} />
+            Security Shop
+          </Link>
 
-const styles = {
-  nav: {
-    background: 'linear-gradient(90deg, #0f3460 0%, #16213e 100%)',
-    padding: '0 32px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: '64px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  logo: {
-    color: 'white',
-    fontSize: '20px',
-    fontWeight: '700',
-    textDecoration: 'none',
-    letterSpacing: '-0.3px',
-  },
-  navRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  navLink: {
-    color: 'rgba(255,255,255,0.85)',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '500',
-    padding: '6px 12px',
-    borderRadius: '8px',
-    position: 'relative',
-    transition: 'background 0.2s',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-  },
-  badge: {
-    background: '#e94560',
-    color: 'white',
-    borderRadius: '50%',
-    width: '18px',
-    height: '18px',
-    fontSize: '11px',
-    fontWeight: '700',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  divider: {
-    color: 'rgba(255,255,255,0.3)',
-    margin: '0 4px',
-  },
-  navUser: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: '13px',
-    padding: '0 4px',
-  },
-  logoutBtn: {
-    background: 'rgba(255,255,255,0.1)',
-    border: '1px solid rgba(255,255,255,0.3)',
-    color: 'white',
-    padding: '6px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500',
-    transition: 'background 0.2s',
-    marginLeft: '8px',
-  },
-  btnOutline: {
-    background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.5)',
-    color: 'white',
-    padding: '7px 18px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  btnPrimary: {
-    background: '#e94560',
-    border: 'none',
-    color: 'white',
-    padding: '7px 18px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600',
-    marginLeft: '4px',
-  },
+          {/* Navigation Links */}
+          <div className="navbar-links">
+            <Link to="/" className={isActive('/')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Home size={15} />
+                {t('nav_home')}
+              </span>
+            </Link>
+            {user && (
+              <Link to="/orders" className={isActive('/orders')}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Package size={15} />
+                  {t('nav_orders')}
+                </span>
+              </Link>
+            )}
+            {user && user.role === 'shipper' && (
+              <Link to="/shipper" className={isActive('/shipper')}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Truck size={15} />
+                  Shipper Portal
+                </span>
+              </Link>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="navbar-actions">
+            {/* Mode Toggle */}
+            <div className="mode-toggle">
+              <button
+                className={mode === 'base' ? 'active-base' : ''}
+                onClick={() => mode !== 'base' && toggleMode()}
+                disabled={modeLoading}
+              >
+                {t('mode_base')}
+              </button>
+              <button
+                className={mode === 'secure' ? 'active-secure' : ''}
+                onClick={() => mode !== 'secure' && toggleMode()}
+                disabled={modeLoading}
+              >
+                {t('mode_secure')}
+              </button>
+            </div>
+
+            {/* Language Toggle */}
+            <button className="btn btn-ghost btn-icon" onClick={toggleLang} title="Toggle language">
+              <Globe size={18} />
+            </button>
+
+            {/* Cart */}
+            <button
+              className="btn btn-ghost btn-icon relative"
+              onClick={() => setIsOpen(true)}
+              id="cart-button"
+            >
+              <ShoppingCart size={18} />
+              {totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
+            </button>
+
+            {/* Auth */}
+            {user ? (
+              <div className="flex items-center gap-sm">
+                <span className="text-sm text-secondary">{user.username}</span>
+                <button className="btn btn-ghost btn-sm" onClick={logout}>
+                  <LogOut size={15} />
+                  {t('nav_logout')}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-xs">
+                <Link to="/login" className="btn btn-ghost btn-sm">
+                  <LogIn size={15} />
+                  {t('nav_login')}
+                </Link>
+                <Link to="/register" className="btn btn-primary btn-sm">
+                  <UserPlus size={15} />
+                  {t('nav_register')}
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </nav>
+    </>
+  );
 }

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: security-shop-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false # You will provide the Supabase Postgres URL in the Render Dashboard
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: security-shop-redis
+          property: connectionString
+      - key: GEMINI_API_KEY
+        sync: false # You will provide the Gemini API Key in the Render Dashboard
+      - key: MODE
+        value: "secure"
+
+  - type: redis
+    name: security-shop-redis
+    plan: free
+    ipAllowList: [] # Only allow internal Render connections
