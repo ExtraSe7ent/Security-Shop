@@ -1,8 +1,8 @@
 """
-Products router — VULNERABILITY #1: SQL Injection → Credit Card Data Theft
+Router sản phẩm — LỖ HỔNG #1: SQL Injection → Đánh cắp dữ liệu thẻ tín dụng
 
-BASE MODE:  Raw SQL string concatenation → attacker can UNION-inject and dump card data.
-SECURE MODE: SQLAlchemy ORM (parameterized queries) + card_number_plain is always empty.
+CHẾ ĐỘ BASE:   Nối chuỗi SQL thô → kẻ tấn công có thể UNION-inject và dump dữ liệu thẻ.
+CHẾ ĐỘ SECURE: SQLAlchemy ORM (truy vấn tham số hoá) + card_number_plain luôn trống.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -29,15 +29,15 @@ def search_products(
     db: Session = Depends(get_db)
 ):
     """
-    BASE MODE:  Raw SQL — vulnerable to UNION-based SQL Injection.
-    SECURE MODE: ORM parameterized query + AES-256 encrypted card storage.
+    CHẾ ĐỘ BASE:   SQL thô — dễ bị tấn công SQL Injection dựa trên UNION.
+    CHẾ ĐỘ SECURE: Truy vấn ORM tham số hoá + lưu thẻ mã hoá AES-256.
     """
     if not q:
         products = db.query(Product).all()
         return {"results": [_product_to_dict(p) for p in products], "mode": "secure" if is_secure() else "base"}
 
     if is_secure():
-        # SECURE Layer 1a: Input length validation — reject oversized queries
+        # Lớp SECURE 1a: Kiểm tra độ dài đầu vào — từ chối truy vấn quá dài
         if len(q) > 200:
             raise HTTPException(
                 status_code=400,
@@ -48,7 +48,7 @@ def search_products(
                 }
             )
 
-        # SECURE Layer 1b: WAF-like input validation — block SQL injection keyword patterns
+        # Lớp SECURE 1b: Kiểm tra đầu vào kiểu WAF — chặn các mẫu từ khoá SQL injection
         SQL_INJECTION_PATTERNS = [
             r'\bunion\b', r'\bselect\b', r'\bdrop\b', r'\binsert\b',
             r'\bupdate\b', r'\bdelete\b', r'\bexec\b', r'\bexecute\b',
@@ -66,7 +66,7 @@ def search_products(
                     }
                 )
 
-        # SECURE Layer 2: ORM parameterized query — injection impossible even without Layer 1
+        # Lớp SECURE 2: Truy vấn ORM tham số hoá — injection là bất khả thi ngay cả khi không có Lớp 1
         products = db.query(Product).filter(Product.name.ilike(f"%{q}%")).all()
 
         sample_card = db.query(PaymentMethod).first()
@@ -88,7 +88,7 @@ def search_products(
         }
 
     else:
-        # BASE: Raw SQL with string concatenation — intentionally vulnerable for demo.
+        # BASE: SQL thô với nối chuỗi — cố ý tạo lỗ hổng để demo.
         raw_query = f"SELECT id, name, name_vi, description, description_vi, price, image_url, category, stock, rating FROM products WHERE name ILIKE '%{q}%'"
         try:
             result = db.execute(text(raw_query))

@@ -1,5 +1,5 @@
 """
-Pydantic schemas for request/response validation.
+Các schema Pydantic để xác thực request/response.
 """
 
 import uuid
@@ -8,7 +8,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
-# ─── Auth ────────────────────────────────────────────────────────────────
+# ─── Xác thực ────────────────────────────────────────────────────────────────
 class UserRegister(BaseModel):
     email: str
     username: str
@@ -40,7 +40,7 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
-# ─── Products ────────────────────────────────────────────────────────────
+# ─── Sản phẩm ────────────────────────────────────────────────────────────
 class ProductOut(BaseModel):
     id: int
     name: str
@@ -57,7 +57,7 @@ class ProductOut(BaseModel):
         from_attributes = True
 
 
-# ─── Payment Methods ────────────────────────────────────────────────────
+# ─── Phương thức thanh toán ────────────────────────────────────────────────────
 class PaymentMethodCreate(BaseModel):
     card_number: str = Field(..., min_length=13, max_length=19)
     card_holder: str
@@ -67,7 +67,7 @@ class PaymentMethodCreate(BaseModel):
 
 class PaymentMethodOut(BaseModel):
     id: uuid.UUID
-    card_display: str  # masked: ****-****-****-1234
+    card_display: str  # đã che: ****-****-****-1234
     card_holder: str
     expiry: str
     card_type: str
@@ -77,11 +77,11 @@ class PaymentMethodOut(BaseModel):
         from_attributes = True
 
 
-# ─── Orders ──────────────────────────────────────────────────────────────
+# ─── Đơn hàng ──────────────────────────────────────────────────────────────
 class OrderItemCreate(BaseModel):
     product_id: int
     quantity: int = 1
-    price: Optional[float] = None  # BASE MODE: frontend-controlled price (vulnerability demo)
+    price: Optional[float] = None  # CHẾ ĐỘ BASE: giá do frontend kiểm soát (demo lỗ hổng)
 
 
 class OrderCreate(BaseModel):
@@ -106,7 +106,7 @@ class OrderOut(BaseModel):
         from_attributes = True
 
 
-# ─── Reviews ─────────────────────────────────────────────────────────────
+# ─── Đánh giá ─────────────────────────────────────────────────────────────
 class ReviewCreate(BaseModel):
     product_id: int
     content: str
@@ -127,17 +127,18 @@ class ReviewOut(BaseModel):
 
 
 # ─── Chatbot ─────────────────────────────────────────────────────────────
+
 class ChatMessage(BaseModel):
     message: str
-    product_id: Optional[int] = None  # If asking about a specific product
+    product_id: Optional[int] = None  # Nếu hỏi về một sản phẩm cụ thể
 
 
 class ChatResponse(BaseModel):
     reply: str
-    mode: str  # "base" or "secure"
+    mode: str  # "base" hoặc "secure"
     guardrails_applied: bool = False
 
 
-# ─── Mode Toggle ─────────────────────────────────────────────────────────
+# ─── Chuyển đổi chế độ ─────────────────────────────────────────────────────────
 class ModeSwitch(BaseModel):
-    mode: str  # "base" or "secure"
+    mode: str  # "base" hoặc "secure"

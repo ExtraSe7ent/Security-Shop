@@ -1,12 +1,12 @@
 """
-Security-Shop v2.0 — FastAPI Application Entry Point
+Security-Shop v2.0 — Điểm vào ứng dụng FastAPI
 
-Demonstrates 5 security vulnerabilities and their defense-in-depth solutions:
-  1. SQL Injection → Credit Card Data Theft
-  2. Business Logic Flaw → Price/Quantity Manipulation
-  3. IDOR → Unauthorized Order Access & Fake COD Scam
-  4. Indirect Prompt Injection → AI Chatbot Manipulation
-  5. AI-Driven XSS → Cross-Site Scripting via Chatbot
+Minh hoạ 5 lỗ hổng bảo mật và giải pháp phòng thủ nhiều lớp:
+  1. SQL Injection → Đánh cắp dữ liệu thẻ tín dụng
+  2. Business Logic Flaw → Thao túng giá/số lượng
+  3. IDOR → Truy cập đơn hàng trái phép & lừa đảo COD giả
+  4. Indirect Prompt Injection → Thao túng chatbot AI
+  5. AI-Driven XSS → Cross-Site Scripting qua chatbot
 """
 
 from contextlib import asynccontextmanager
@@ -22,20 +22,20 @@ from app.schemas import ModeSwitch
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
-    SECURE MODE DEFENSE — Layer 3 for XSS:
-    Injects HTTP Security Headers into every API response.
-    - Content-Security-Policy: blocks inline scripts even if DOMPurify fails
-    - X-Frame-Options: prevents clickjacking attacks
-    - X-Content-Type-Options: prevents MIME-type sniffing attacks
-    - X-XSS-Protection: enables browser's built-in XSS filter (legacy support)
-    - Referrer-Policy: prevents leaking sensitive URLs to third parties
+    BẢO VỆ CHẾ ĐỘ SECURE — Lớp 3 chống XSS:
+    Chèn HTTP Security Headers vào mọi phản hồi API.
+    - Content-Security-Policy: chặn inline script ngay cả khi DOMPurify thất bại
+    - X-Frame-Options: ngăn chặn tấn công clickjacking
+    - X-Content-Type-Options: ngăn chặn tấn công MIME-type sniffing
+    - X-XSS-Protection: bật bộ lọc XSS tích hợp của trình duyệt (hỗ trợ trình duyệt cũ)
+    - Referrer-Policy: ngăn rò rỉ URL nhạy cảm cho bên thứ ba
     """
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         if is_secure():
-            # HSTS: Forces browser to always use HTTPS — prevents SSL Stripping attacks.
-            # max-age=31536000 = 1 year. includeSubDomains covers all subdomains. preload = in browser's hardcoded HTTPS list.
-            # Even on localhost this header can be inspected in DevTools to demo the concept.
+            # HSTS: Buộc trình duyệt luôn dùng HTTPS — ngăn chặn tấn công SSL Stripping.
+            # max-age=31536000 = 1 năm. includeSubDomains áp dụng cho mọi subdomain. preload = nằm trong danh sách HTTPS cứng của trình duyệt.
+            # Ngay cả trên localhost, header này vẫn có thể xem qua DevTools để minh hoạ khái niệm.
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; "
@@ -56,7 +56,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Khởi tạo cơ sở dữ liệu khi ứng dụng khởi động."""
     init_db()
     yield
 
@@ -70,8 +70,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow any frontend (Vercel, Netlify, etc.)
-    allow_credentials=False, # Must be False when allow_origins is ["*"]
+    allow_origins=["*"],  # Cho phép mọi frontend (Vercel, Netlify, v.v.)
+    allow_credentials=False, # Phải là False khi allow_origins là ["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -101,7 +101,7 @@ def get_mode():
 
 @app.post("/api/mode")
 def switch_mode(data: ModeSwitch):
-    """Switch between base and secure mode for live demo."""
+    """Chuyển đổi giữa chế độ base và secure để trình diễn trực tiếp."""
     if data.mode not in ("base", "secure"):
         return {"error": "Mode must be 'base' or 'secure'"}
     set_mode(data.mode)

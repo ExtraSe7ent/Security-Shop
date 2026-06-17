@@ -50,6 +50,15 @@ export default function Checkout() {
     setError('');
     setLoading(true);
 
+    // Validate CVV format (3-4 digits) if entering a new card
+    if (!selectedCard && formData.card_number) {
+      if (formData.cvv && !/^\d{3,4}$/.test(formData.cvv)) {
+        setError('CVV must be 3 or 4 digits.');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       let paymentMethodId = selectedCard;
 
@@ -79,7 +88,9 @@ export default function Checkout() {
       setSuccess(true);
       clearCart();
     } catch (err) {
-      setError(err.response?.data?.detail || t('error'));
+      const detail = err.response?.data?.detail;
+      const errorMessage = typeof detail === 'object' ? (detail.error || JSON.stringify(detail)) : detail;
+      setError(errorMessage || t('error'));
     } finally {
       setLoading(false);
     }

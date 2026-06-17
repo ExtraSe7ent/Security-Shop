@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
 import { productsAPI } from '../api';
 import { useLang } from '../contexts/LangContext';
@@ -10,6 +10,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { t } = useLang();
+  const debounceTimer = useRef(null);
 
   const fetchProducts = async () => {
     try {
@@ -27,21 +28,23 @@ export default function Home() {
     fetchProducts();
   }, []);
 
-  const handleSearch = async (e) => {
+  const handleSearch = (e) => {
     const query = e.target.value;
     setSearch(query);
 
-    if (!query.trim()) {
-      fetchProducts();
-      return;
-    }
-
-    try {
-      const res = await productsAPI.search(query);
-      setProducts(res.data.results || res.data);
-    } catch (err) {
-      console.error('Search failed:', err);
-    }
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(async () => {
+      if (!query.trim()) {
+        fetchProducts();
+        return;
+      }
+      try {
+        const res = await productsAPI.search(query);
+        setProducts(res.data.results || res.data);
+      } catch (err) {
+        console.error('Search failed:', err);
+      }
+    }, 400);
   };
 
   return (

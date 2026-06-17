@@ -10,7 +10,7 @@ from app.config import is_secure
 
 router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
 
-# Patterns that indicate an attempt to inject instructions into the AI
+# Các mẫu cho thấy ý định chèn lệnh vào AI
 INJECTION_PATTERNS = [
     r'\[SYSTEM',
     r'\[INSTRUCTION',
@@ -34,18 +34,18 @@ def create_review(
     db: Session = Depends(get_db),
 ):
     """
-    Create a review for a product.
+    Tạo đánh giá cho một sản phẩm.
 
-    BASE MODE:  Content stored as-is — enables Indirect Prompt Injection & XSS via chatbot.
-    SECURE MODE: Layer 1 defense — scan for injection patterns before saving to database.
+    CHẾ ĐỘ BASE:   Nội dung lưu nguyên vẹn — cho phép Indirect Prompt Injection & XSS qua chatbot.
+    CHẾ ĐỘ SECURE: Phòng thủ Lớp 1 — quét tìm mẫu injection trước khi lưu vào cơ sở dữ liệu.
     """
-    # Check product exists
+    # Kiểm tra sản phẩm có tồn tại không
     product = db.query(Product).filter(Product.id == data.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
     if is_secure():
-        # SECURE Layer 1: Injection Pattern Detection — reject reviews containing AI injection commands
+        # Lớp SECURE 1: Phát hiện mẫu Injection — từ chối đánh giá chứa lệnh AI injection
         for pattern in INJECTION_PATTERNS:
             if re.search(pattern, data.content, re.IGNORECASE):
                 raise HTTPException(
@@ -58,7 +58,7 @@ def create_review(
                     }
                 )
 
-        # SECURE Layer 2: Length validation — prevent excessively long payloads
+        # Lớp SECURE 2: Kiểm tra độ dài — ngăn chặn payload quá dài
         if len(data.content) > 1000:
             raise HTTPException(
                 status_code=400,
@@ -69,8 +69,8 @@ def create_review(
                 }
             )
 
-    # NOTE: Duplicate review check intentionally disabled for demo —
-    # this lets the same user write multiple reviews to re-run attack scenarios.
+    # GHI CHÚ: Kiểm tra đánh giá trùng lặp bị tắt có chủ ý cho mục đích demo —
+    # điều này cho phép cùng một người dùng viết nhiều đánh giá để tái hiện các kịch bản tấn công.
     review = Review(
         product_id=data.product_id,
         user_id=current_user.id,
@@ -113,7 +113,7 @@ def delete_review(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Delete own review (allows re-writing for repeated demo runs)."""
+    """Xoá đánh giá của chính mình (cho phép viết lại để chạy demo nhiều lần)."""
     review = db.query(Review).filter(Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")

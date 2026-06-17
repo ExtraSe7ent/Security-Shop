@@ -4,6 +4,7 @@ import { Truck, Search, CheckCircle, XCircle, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { shipperAPI } from '../api';
+import { virtualPhone } from '../utils/virtualPhone';
 
 export default function ShipperPortal() {
   const { user } = useAuth();
@@ -113,7 +114,7 @@ export default function ShipperPortal() {
                     <div>
                       <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'block' }}>Số in trên vận đơn (ẢO)</span>
                       <span style={{ fontFamily: 'monospace', color: '#6b7280', textDecoration: 'line-through' }}>
-                        0287-{String(order.id).padStart(3, '0')}{String((order.id * 17 + 42) % 1000).padStart(3, '0')}
+                        {virtualPhone(order.id)}
                       </span>
                     </div>
                     <span style={{ color: '#d1d5db' }}>→</span>

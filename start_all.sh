@@ -13,8 +13,12 @@ echo -e "${YELLOW}🚀 Đang khởi động toàn bộ hệ thống Security-Sho
 echo -e "${BLUE}[1/4] Khởi động PostgreSQL và Redis qua Docker...${NC}"
 docker-compose up -d
 
-# Chờ một chút cho DB sẵn sàng
-sleep 3
+# Chờ PostgreSQL thực sự sẵn sàng nhận kết nối
+echo -e "${YELLOW}⏳ Chờ PostgreSQL khởi động...${NC}"
+until docker-compose exec -T db pg_isready -U admin -d ecommerce_db > /dev/null 2>&1; do
+  sleep 1
+done
+echo -e "${GREEN}✅ PostgreSQL đã sẵn sàng.${NC}"
 
 # 2. Chạy Hacker Server (Cổng 4000)
 echo -e "${BLUE}[2/4] Khởi động Hacker Server...${NC}"

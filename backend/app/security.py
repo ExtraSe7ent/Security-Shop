@@ -1,11 +1,11 @@
 """
-Security utilities: JWT tokens, password hashing, AES-256 encryption, data masking, HMAC signing.
+Các tiện ích bảo mật: JWT tokens, băm mật khẩu, mã hoá AES-256, che giấu dữ liệu, ký HMAC.
 
-Defense-in-depth layers:
-  Layer 1 (Code):    Parameterized queries via ORM (handled in routers)
-  Layer 2 (Data):    AES-256 encryption for credit card numbers (this module)
-  Layer 3 (Access):  JWT-based auth + ownership checks (this module + routers)
-  Layer 4 (Integrity): HMAC-SHA256 request signing — prevents tampering in transit (this module)
+Các lớp phòng thủ nhiều lớp:
+  Lớp 1 (Code):    Truy vấn tham số hoá qua ORM (xử lý trong routers)
+  Lớp 2 (Dữ liệu): Mã hoá AES-256 cho số thẻ tín dụng (module này)
+  Lớp 3 (Truy cập): Xác thực JWT + kiểm tra quyền sở hữu (module này + routers)
+  Lớp 4 (Toàn vẹn): Ký request bằng HMAC-SHA256 — ngăn chặn giả mạo trong quá trình truyền (module này)
 """
 
 import base64
@@ -25,17 +25,17 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# ─── Password Hashing ───────────────────────────────────────────────────
+# ─── Băm mật khẩu ───────────────────────────────────────────────────
 
 
 def hash_password(password: str) -> str:
-    """Hash password using native bcrypt."""
+    """Băm mật khẩu bằng bcrypt native."""
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against native bcrypt hash."""
+    """Xác minh mật khẩu với giá trị băm bcrypt native."""
     try:
         return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
     except Exception:
@@ -58,59 +58,59 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
-# ─── AES-256 Encryption (for credit card numbers) ───────────────────────
+# ─── Mã hoá AES-256 (cho số thẻ tín dụng) ───────────────────────
 def _get_aes_key() -> bytes:
-    """Convert hex string to 16-byte key for AES-128 (or 32-byte for AES-256)."""
+    """Chuyển đổi chuỗi hex thành khóa 16 byte cho AES-128 (hoặc 32 byte cho AES-256)."""
     return bytes.fromhex(settings.aes_key)
 
 
 def encrypt_card_number(card_number: str) -> str:
     """
-    Encrypt a credit card number using AES-CBC with PKCS7 padding.
-    Returns base64-encoded string: iv + ciphertext
+    Mã hoá số thẻ tín dụng bằng AES-CBC với đệm PKCS7.
+    Trả về chuỗi mã hoá base64: iv + ciphertext
     """
     key = _get_aes_key()
     iv = os.urandom(16)
 
-    # Pad the plaintext to block size
+    # Đệm plaintext đến kích thước block
     padder = sym_padding.PKCS7(128).padder()
     padded_data = padder.update(card_number.encode()) + padder.finalize()
 
-    # Encrypt
+    # Mã hoá
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(padded_data) + encryptor.finalize()
 
-    # Return iv + ciphertext as base64
+    # Trả về iv + ciphertext dạng base64
     return base64.b64encode(iv + ciphertext).decode()
 
 
 def decrypt_card_number(encrypted: str) -> str:
     """
-    Decrypt a credit card number from AES-CBC base64 string.
+    Giải mã số thẻ tín dụng từ chuỗi AES-CBC dạng base64.
     """
     key = _get_aes_key()
     raw = base64.b64decode(encrypted)
     iv = raw[:16]
     ciphertext = raw[16:]
 
-    # Decrypt
+    # Giải mã
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     decryptor = cipher.decryptor()
     padded_data = decryptor.update(ciphertext) + decryptor.finalize()
 
-    # Unpad
+    # Bỏ đệm
     unpadder = sym_padding.PKCS7(128).unpadder()
     data = unpadder.update(padded_data) + unpadder.finalize()
 
     return data.decode()
 
 
-# ─── Data Masking ────────────────────────────────────────────────────────
+# ─── Che giấu dữ liệu ────────────────────────────────────────────────────────
 def mask_card_number(card_number: str) -> str:
     """
-    Mask a credit card number: 4532XXXXXXXX1234 → ****-****-****-1234
-    Only the last 4 digits are visible.
+    Che giấu số thẻ tín dụng: 4532XXXXXXXX1234 → ****-****-****-1234
+    Chỉ hiển thị 4 chữ số cuối.
     """
     if len(card_number) < 4:
         return "****"
@@ -119,14 +119,14 @@ def mask_card_number(card_number: str) -> str:
 
 
 def mask_phone(phone: str) -> str:
-    """Mask phone number: 0912345678 → 091***678 (show prefix + last 3)"""
+    """Che giấu số điện thoại: 0912345678 → 091***678 (hiện tiền tố + 3 số cuối)"""
     if len(phone) < 6:
         return "****"
     return f"{phone[:3]}***{phone[-3:]}"
 
 
 def mask_address(address: str) -> str:
-    """Mask address, showing only the city/district."""
+    """Che giấu địa chỉ, chỉ hiển thị thành phố/quận."""
     if not address:
         return "***"
     parts = address.split(",")
@@ -135,20 +135,17 @@ def mask_address(address: str) -> str:
     return "***"
 
 
-# ─── HMAC Request Signing (Integrity Layer) ─────────────────────────────
-
-HMAC_SHARED_SECRET = "securityshop-hmac-secret-2024"  # In production: store in env, rotate regularly
-
+# ─── Ký request bằng HMAC (Lớp toàn vẹn) ─────────────────────────────
 
 def generate_order_hmac(order_body: dict, timestamp: str) -> str:
     """
-    SECURE Layer 4 — Generate HMAC-SHA256 signature for an order request.
-    Signature = HMAC_SHA256(secret, canonical_body + "|" + timestamp)
-    The canonical body is JSON with sorted keys to ensure deterministic ordering.
+    Lớp SECURE 4 — Tạo chữ ký HMAC-SHA256 cho request đặt hàng.
+    Chữ ký = HMAC_SHA256(secret, canonical_body + "|" + timestamp)
+    Canonical body là JSON với các khóa được sắp xếp để đảm bảo thứ tự xác định.
     """
     canonical = _json.dumps(order_body, sort_keys=True, separators=(",", ":")) + "|" + timestamp
     sig = _hmac.new(
-        HMAC_SHARED_SECRET.encode(),
+        settings.hmac_secret.encode(),
         canonical.encode(),
         hashlib.sha256,
     ).hexdigest()
@@ -157,9 +154,9 @@ def generate_order_hmac(order_body: dict, timestamp: str) -> str:
 
 def verify_order_hmac(order_body: dict, timestamp: str, provided_sig: str) -> bool:
     """
-    SECURE Layer 4 — Verify that the HMAC signature matches the request body.
-    Returns False if the body was tampered with or the signature is missing/invalid.
-    Uses constant-time comparison to prevent timing attacks.
+    Lớp SECURE 4 — Xác minh chữ ký HMAC khớp với nội dung request.
+    Trả về False nếu nội dung bị giả mạo hoặc chữ ký thiếu/không hợp lệ.
+    Dùng so sánh thời gian cố định để ngăn chặn tấn công timing attack.
     """
     expected = generate_order_hmac(order_body, timestamp)
     return _hmac.compare_digest(expected, provided_sig)

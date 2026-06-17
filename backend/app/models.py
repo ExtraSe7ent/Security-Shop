@@ -1,12 +1,12 @@
 """
-SQLAlchemy ORM models for Security-Shop v2.
+Các model SQLAlchemy ORM cho Security-Shop v2.
 
-Key design decisions:
-- Users use UUID primary keys (harder to enumerate)
-- Orders use UUID in secure mode, int in base mode (for IDOR demo)
-- PaymentMethods store card numbers both encrypted (AES-256) and plain text
-  so we can demonstrate the difference between secure and insecure storage
-- Reviews are the attack surface for Indirect Prompt Injection
+Quyết định thiết kế chính:
+- Người dùng dùng UUID làm khóa chính (khó đoán hơn)
+- Đơn hàng dùng UUID ở chế độ secure, int ở chế độ base (để demo IDOR)
+- PaymentMethods lưu số thẻ dưới cả hai dạng: mã hoá (AES-256) và văn bản thuần
+  để có thể minh hoạ sự khác biệt giữa lưu trữ an toàn và không an toàn
+- Reviews là bề mặt tấn công cho Indirect Prompt Injection
 """
 
 import uuid
@@ -34,7 +34,7 @@ class User(Base):
     role = Column(String(20), default="customer")  # customer / admin
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Quan hệ
     payment_methods = relationship("PaymentMethod", back_populates="user", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
@@ -45,9 +45,9 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    name_vi = Column(String(255), default="")  # Vietnamese name
+    name_vi = Column(String(255), default="")  # Tên tiếng Việt
     description = Column(Text, default="")
-    description_vi = Column(Text, default="")  # Vietnamese description
+    description_vi = Column(Text, default="")  # Mô tả tiếng Việt
     price = Column(Float, nullable=False)
     image_url = Column(String(500), default="")
     category = Column(String(100), default="")
@@ -55,40 +55,40 @@ class Product(Base):
     rating = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Quan hệ
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
 
 
 class PaymentMethod(Base):
     """
-    SECURITY FOCUS: This table is the primary target for SQL Injection attacks.
+    TRỌNG TÂM BẢO MẬT: Bảng này là mục tiêu chính của các cuộc tấn công SQL Injection.
 
-    - card_number_plain: Stored in plain text (Base mode) — attacker can dump this
-    - card_number_encrypted: AES-256 encrypted (Secure mode) — even if dumped, unusable
-    - last_four: Always stored for display purposes (e.g., ****-****-****-1234)
+    - card_number_plain: Lưu dạng văn bản thuần (chế độ Base) — kẻ tấn công có thể dump dữ liệu này
+    - card_number_encrypted: Mã hoá AES-256 (chế độ Secure) — dù bị dump cũng không dùng được
+    - last_four: Luôn lưu để hiển thị (ví dụ: ****-****-****-1234)
     """
     __tablename__ = "payment_methods"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    card_number_plain = Column(String(20), default="")      # Base mode: plain text
-    card_number_encrypted = Column(Text, default="")         # Secure mode: AES-256
+    card_number_plain = Column(String(20), default="")      # Chế độ Base: văn bản thuần
+    card_number_encrypted = Column(Text, default="")         # Chế độ Secure: AES-256
     card_holder = Column(String(255), default="")
     expiry = Column(String(10), default="")                  # MM/YY
     last_four = Column(String(4), default="")
-    card_type = Column(String(20), default="visa")           # visa, mastercard, etc.
+    card_type = Column(String(20), default="visa")           # visa, mastercard, v.v.
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Quan hệ
     user = relationship("User", back_populates="payment_methods")
 
 
 class Order(Base):
     """
-    SECURITY FOCUS: This table demonstrates IDOR vulnerability.
+    TRỌNG TÂM BẢO MẬT: Bảng này minh hoạ lỗ hổng IDOR.
 
-    - In Base mode: sequential integer IDs make it easy to enumerate
-    - In Secure mode: UUID IDs + ownership check + data masking
+    - Ở chế độ Base: ID số nguyên tuần tự giúp dễ dàng dò đoán
+    - Ở chế độ Secure: UUID + kiểm tra quyền sở hữu + che giấu dữ liệu
     """
     __tablename__ = "orders"
 
@@ -103,17 +103,17 @@ class Order(Base):
     status = Column(String(50), default="pending")  # pending, confirmed, shipped, delivered
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Quan hệ
     user = relationship("User", back_populates="orders")
 
 
 class Review(Base):
     """
-    SECURITY FOCUS: This table is the attack vector for Indirect Prompt Injection.
+    TRỌNG TÂM BẢO MẬT: Bảng này là vector tấn công cho Indirect Prompt Injection.
 
-    Attacker writes a review containing hidden instructions for the LLM chatbot.
-    When the chatbot reads reviews to summarize product feedback, it may follow
-    the injected instructions instead of the system prompt.
+    Kẻ tấn công viết một đánh giá chứa các lệnh ẩn dành cho chatbot LLM.
+    Khi chatbot đọc đánh giá để tóm tắt phản hồi sản phẩm, nó có thể tuân theo
+    các lệnh được chèn vào thay vì system prompt ban đầu.
     """
     __tablename__ = "reviews"
 
@@ -124,6 +124,6 @@ class Review(Base):
     rating = Column(Integer, default=5)  # 1-5
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Quan hệ
     product = relationship("Product", back_populates="reviews")
     user = relationship("User", back_populates="reviews")

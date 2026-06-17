@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { ordersAPI } from '../api';
 import QRCode from 'react-qr-code';
+import { virtualPhone } from '../utils/virtualPhone';
 
 export default function Orders() {
   const { user } = useAuth();
@@ -162,7 +163,7 @@ export default function Orders() {
                     <p style={{ marginBottom: '6px' }}>
                       <strong>SĐT giao hàng:</strong>{' '}
                       <span style={{ fontFamily: 'monospace', color: '#059669', fontWeight: '600' }}>
-                        0287-{String(labelOrder.id).padStart(3, '0')}{String((labelOrder.id * 17 + 42) % 1000).padStart(3, '0')}
+                        {virtualPhone(labelOrder.id)}
                       </span>
                       {' '}<span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '4px' }}>SỐ ẢO</span>
                     </p>
