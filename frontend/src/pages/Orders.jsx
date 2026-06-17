@@ -217,9 +217,7 @@ export default function Orders() {
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '1rem', padding: '10px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.78rem', color: '#92400e' }}>
-                      🔒 <strong>Bảo mật PII:</strong> Đây là thông tin in trên nắp hộp hàng. Tên, SĐT và địa chỉ đều được ẩn danh hóa — người lạ cầm hộp không biết thông tin thật của bạn. Shipper quét QR trên App nội bộ mới xem được địa chỉ thật.
-                    </div>
+
                   </div>
                 </div>
 
