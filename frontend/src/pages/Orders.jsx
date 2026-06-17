@@ -141,23 +141,41 @@ export default function Orders() {
           </div>
         )}
 
-        {/* Shipping Label Modal — shows VIRTUAL/FAKE info, not real customer data */}
+        {/* Shipping Label Modal — fixed overlay with full inline styles (no .modal CSS class exists) */}
         {labelOrder && (
-          <div className="modal" style={{ display: 'flex', zIndex: 1000 }}>
-            <div className="modal-content animate-scaleIn" style={{ maxWidth: '420px', width: '100%', padding: '0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--surface-border)' }}>
-                <h3 className="text-lg font-bold">🏷️ Nhãn Vận Đơn (Mô phỏng)</h3>
-                <button className="btn-icon" onClick={() => setLabelOrder(null)}>
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '1rem',
+          }}
+            onClick={(e) => { if (e.target === e.currentTarget) setLabelOrder(null); }}
+          >
+            <div style={{
+              background: 'white', borderRadius: '16px', width: '100%', maxWidth: '440px',
+              maxHeight: '90vh', overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
+              animation: 'none',
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+                <h3 style={{ fontWeight: '700', fontSize: '1.1rem', margin: 0 }}>🏷️ Nhãn Vận Đơn (Mô phỏng)</h3>
+                <button
+                  onClick={() => setLabelOrder(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '6px', color: '#6b7280' }}
+                >
                   <X size={20} />
                 </button>
               </div>
+
+              {/* Body */}
               <div style={{ padding: '1.5rem', backgroundColor: '#f9fafb' }}>
-                {/* ---- SIMULATED SHIPPING LABEL ---- */}
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '2px dashed #d1d5db' }}>
+                {/* Simulated Shipping Label */}
+                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '2px dashed #d1d5db' }}>
 
                   {/* QR Code */}
                   <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-                    <QRCode value={qrValue(labelOrder)} size={140} style={{ margin: '0 auto' }} />
+                    <QRCode value={qrValue(labelOrder)} size={130} style={{ margin: '0 auto' }} />
                     <p style={{ marginTop: '6px', fontSize: '0.75rem', color: '#6b7280' }}>
                       Mã QR — Shipper quét để xem địa chỉ thật
                     </p>
@@ -165,27 +183,23 @@ export default function Orders() {
 
                   <hr style={{ borderColor: '#e5e7eb', marginBottom: '1rem' }} />
 
-                  {/* Masked / Virtual Info */}
+                  {/* Virtual Info */}
                   <div style={{ fontSize: '0.9rem', color: '#374151' }}>
                     <p style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '14px', borderBottom: '1px dashed #e5e7eb', paddingBottom: '10px' }}>
-                      ĐƠN HÀNG #{labelOrder.id ?? labelOrder.order_uuid?.slice(0,8)}
+                      ĐƠN HÀNG #{labelOrder.id ?? labelOrder.order_uuid?.slice(0, 8)}
                     </p>
 
-                    {/* Virtual name — anonymous, not real customer name */}
-                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Virtual name */}
+                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span style={{ color: '#6b7280', minWidth: '80px' }}>👤 Người nhận:</span>
-                      <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: '600' }}>
-                        Khách hàng #{labelOrder.id ?? '???'}
-                      </span>
+                      <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: '600' }}>Khách hàng #{labelOrder.id ?? '???'}</span>
                       <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>ẨN DANH</span>
                     </div>
 
                     {/* Virtual Phone */}
                     <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span style={{ color: '#6b7280', minWidth: '80px' }}>📞 SĐT:</span>
-                      <span style={{ fontFamily: 'monospace', color: '#059669', fontWeight: '600' }}>
-                        {virtualPhone(labelOrder.id ?? 0)}
-                      </span>
+                      <span style={{ fontFamily: 'monospace', color: '#059669', fontWeight: '600' }}>{virtualPhone(labelOrder.id ?? 0)}</span>
                       <span style={{ fontSize: '0.7rem', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '4px' }}>SỐ ẢO</span>
                     </div>
 
@@ -195,11 +209,8 @@ export default function Orders() {
                       <div>
                         <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: '600' }}>
                           {(() => {
-                            const addr = typeof labelOrder.shipping_address === 'string'
-                              ? labelOrder.shipping_address : '';
-                            return addr
-                              ? `***, ${addr.split(',').slice(-1)[0].trim()}`
-                              : '***, TP.HCM';
+                            const addr = typeof labelOrder.shipping_address === 'string' ? labelOrder.shipping_address : '';
+                            return addr ? `***, ${addr.split(',').slice(-1)[0].trim()}` : '***, TP.HCM';
                           })()}
                         </span>
                         <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>ĐỊA CHỈ ẨN</span>
@@ -207,12 +218,11 @@ export default function Orders() {
                     </div>
 
                     <div style={{ marginTop: '1rem', padding: '10px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.78rem', color: '#92400e' }}>
-                      🔒 <strong>Bảo mật PII:</strong> Đây là thông tin in trên nắp hộp hàng. Tên, SĐT và địa chỉ đều được ẩn danh hóa — người lạ cầm hộp không biết thông tin thật của bạn. Shipper quét mã QR trên App nội bộ mới xem được địa chỉ thật để giao hàng.
+                      🔒 <strong>Bảo mật PII:</strong> Đây là thông tin in trên nắp hộp hàng. Tên, SĐT và địa chỉ đều được ẩn danh hóa — người lạ cầm hộp không biết thông tin thật của bạn. Shipper quét QR trên App nội bộ mới xem được địa chỉ thật.
                     </div>
                   </div>
                 </div>
 
-                {/* Explanation note */}
                 <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#6b7280', textAlign: 'center' }}>
                   Shipper dùng App/Web nội bộ → đăng nhập → quét QR → xem địa chỉ thật
                 </p>
