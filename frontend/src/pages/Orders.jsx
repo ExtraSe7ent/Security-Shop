@@ -7,6 +7,17 @@ import { ordersAPI } from '../api';
 import QRCode from 'react-qr-code';
 import { virtualPhone } from '../utils/virtualPhone';
 
+// Safe helper: convert any value to displayable string
+const safeStr = (v) => (v == null ? '' : String(v));
+// Safe helper: get QR value (must be non-empty string)
+const qrValue = (order) => {
+  const uuid = safeStr(order?.order_uuid);
+  if (uuid) return uuid;
+  const id = safeStr(order?.id);
+  if (id) return id;
+  return 'ORDER';
+};
+
 export default function Orders() {
   const { user } = useAuth();
   const { lang, t } = useLang();
@@ -146,7 +157,7 @@ export default function Orders() {
 
                   {/* QR Code */}
                   <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-                    <QRCode value={labelOrder.order_uuid || labelOrder.id.toString()} size={140} style={{ margin: '0 auto' }} />
+                    <QRCode value={qrValue(labelOrder)} size={140} style={{ margin: '0 auto' }} />
                     <p style={{ marginTop: '6px', fontSize: '0.75rem', color: '#6b7280' }}>
                       Mã QR — Shipper quét để xem địa chỉ thật
                     </p>
