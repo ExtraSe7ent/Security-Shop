@@ -130,7 +130,7 @@ export default function ShipperPortal() {
                     </div>
                     <span style={{ color: '#d1d5db' }}>→</span>
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#059669', display: 'block' }}>Chuyển về số THẬT</span>
+                      <span style={{ fontSize: '0.72rem', color: '#059669', display: 'block' }}>Số điện thoại thật</span>
                       <a href={`tel:${order.shipping_phone}`} style={{ color: '#059669', fontWeight: '600', fontFamily: 'monospace' }}>
                         {order.shipping_phone}
                       </a>
@@ -153,7 +153,7 @@ export default function ShipperPortal() {
                     </div>
                     <span style={{ color: '#d1d5db', marginTop: '16px' }}>→</span>
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#059669', display: 'block' }}>Địa chỉ THẬT (chỉ shipper thấy)</span>
+                      <span style={{ fontSize: '0.72rem', color: '#059669', display: 'block' }}>Địa chỉ THẬT</span>
                       <span style={{ color: '#059669', fontWeight: '600' }}>{order.shipping_address}</span>
                     </div>
                   </div>

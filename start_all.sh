@@ -9,13 +9,13 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}🚀 Đang khởi động toàn bộ hệ thống Security-Shop...${NC}\n"
 
-# 1. Chạy Database & Redis (Docker)
-echo -e "${BLUE}[1/4] Khởi động PostgreSQL và Redis qua Docker...${NC}"
+# 1. Chạy Database (Docker)
+echo -e "${BLUE}[1/4] Khởi động PostgreSQL qua Docker...${NC}"
 docker-compose up -d
 
 # Chờ PostgreSQL thực sự sẵn sàng nhận kết nối
 echo -e "${YELLOW}⏳ Chờ PostgreSQL khởi động...${NC}"
-until docker-compose exec -T db pg_isready -U admin -d ecommerce_db > /dev/null 2>&1; do
+until docker-compose exec -T postgres pg_isready -U admin -d ecommerce_db > /dev/null 2>&1; do
   sleep 1
 done
 echo -e "${GREEN}✅ PostgreSQL đã sẵn sàng.${NC}"
@@ -35,7 +35,7 @@ uvicorn app.main:app --reload &
 BACKEND_PID=$!
 cd ..
 
-# 4. Chạy Frontend (React trên Cổng 3000)
+# 4. Chạy Frontend (React trên Cổng 5173)
 echo -e "${BLUE}[4/4] Khởi động Frontend (React/Vite)...${NC}"
 cd frontend
 npm run dev &
@@ -43,7 +43,7 @@ FRONTEND_PID=$!
 cd ..
 
 echo -e "\n${GREEN}✅ HOÀN TẤT! Toàn bộ hệ thống đã chạy thành công.${NC}"
-echo -e "🌐 Frontend:    http://localhost:3000"
+echo -e "🌐 Frontend:    http://localhost:5173"
 echo -e "⚙️  Backend:     http://localhost:8000"
 echo -e "😈 Hacker Server: http://localhost:4000"
 echo -e "\n${RED}🛑 BẤM Ctrl + C để tắt toàn bộ hệ thống.${NC}\n"

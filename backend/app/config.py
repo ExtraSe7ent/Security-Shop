@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # Bảo mật
     secret_key: str = "securityshop-v2-secret-2024-xyz"
-    aes_key: str = "0123456789abcdef0123456789abcdef"  # 32 ký tự hex = 16 byte
+    aes_key: str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"  # 64 ký tự hex = 32 byte = AES-256
     hmac_secret: str = "securityshop-hmac-secret-2024"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
