@@ -102,10 +102,21 @@ export default function ShipperPortal() {
               </div>
 
               <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                <p style={{ margin: '0 0 10px 0', color: '#111827', fontWeight: '500' }}>
-                  <span style={{ color: '#6b7280', fontSize: '0.85rem', display: 'block' }}>Tên khách hàng (Thật)</span>
-                  {order.customer_name}
-                </p>
+                {/* Customer name: virtual (strikethrough) → real */}
+                <div style={{ marginBottom: '10px', padding: '10px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                  <span style={{ color: '#6b7280', fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>👤 Tên khách hàng</span>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div>
+                      <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'block' }}>Tên in trên vận đơn (ẢO)</span>
+                      <span style={{ fontFamily: 'monospace', color: '#6b7280', textDecoration: 'line-through' }}>Khách hàng #{order.id}</span>
+                    </div>
+                    <span style={{ color: '#d1d5db' }}>→</span>
+                    <div>
+                      <span style={{ fontSize: '0.72rem', color: '#059669', display: 'block' }}>Tên THẬT</span>
+                      <span style={{ color: '#059669', fontWeight: '600' }}>{order.customer_name}</span>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Show both virtual (from label) and real phone side by side */}
                 <div style={{ marginBottom: '10px', padding: '10px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
@@ -127,10 +138,26 @@ export default function ShipperPortal() {
                   </div>
                 </div>
 
-                <p style={{ margin: '0', color: '#111827', fontWeight: '500' }}>
-                  <span style={{ color: '#6b7280', fontSize: '0.85rem', display: 'block' }}>Địa chỉ giao hàng (Đầy đủ - chỉ shipper thấy)</span>
-                  {order.shipping_address}
-                </p>
+                {/* Address: virtual masked (strikethrough) → real */}
+                <div style={{ padding: '10px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                  <span style={{ color: '#6b7280', fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>📍 Địa chỉ giao hàng</span>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div>
+                      <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'block' }}>Địa chỉ in trên vận đơn (ẢO)</span>
+                      <span style={{ fontFamily: 'monospace', color: '#6b7280', textDecoration: 'line-through' }}>
+                        {(() => {
+                          const addr = String(order.shipping_address || '');
+                          return addr ? `***, ${addr.split(',').slice(-1)[0].trim()}` : '***, TP.HCM';
+                        })()}
+                      </span>
+                    </div>
+                    <span style={{ color: '#d1d5db', marginTop: '16px' }}>→</span>
+                    <div>
+                      <span style={{ fontSize: '0.72rem', color: '#059669', display: 'block' }}>Địa chỉ THẬT (chỉ shipper thấy)</span>
+                      <span style={{ color: '#059669', fontWeight: '600' }}>{order.shipping_address}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>

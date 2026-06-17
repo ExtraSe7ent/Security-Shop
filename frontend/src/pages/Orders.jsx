@@ -167,33 +167,47 @@ export default function Orders() {
 
                   {/* Masked / Virtual Info */}
                   <div style={{ fontSize: '0.9rem', color: '#374151' }}>
-                    <p style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '10px' }}>ĐƠN HÀNG #{labelOrder.id ?? labelOrder.order_uuid?.slice(0,8)}</p>
+                    <p style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '14px', borderBottom: '1px dashed #e5e7eb', paddingBottom: '10px' }}>
+                      ĐƠN HÀNG #{labelOrder.id ?? labelOrder.order_uuid?.slice(0,8)}
+                    </p>
 
-                    {/* Virtual Phone — completely different number, not masked real one */}
-                    {/* In SECURE demo: we generate a fake number 0287-XXXXXX from the order ID */}
-                    <p style={{ marginBottom: '6px' }}>
-                      <strong>SĐT giao hàng:</strong>{' '}
+                    {/* Virtual name — anonymous, not real customer name */}
+                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: '#6b7280', minWidth: '80px' }}>👤 Người nhận:</span>
+                      <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: '600' }}>
+                        Khách hàng #{labelOrder.id ?? '???'}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>ẨN DANH</span>
+                    </div>
+
+                    {/* Virtual Phone */}
+                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ color: '#6b7280', minWidth: '80px' }}>📞 SĐT:</span>
                       <span style={{ fontFamily: 'monospace', color: '#059669', fontWeight: '600' }}>
                         {virtualPhone(labelOrder.id ?? 0)}
                       </span>
-                      {' '}<span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '4px' }}>SỐ ẢO</span>
-                    </p>
+                      <span style={{ fontSize: '0.7rem', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '4px' }}>SỐ ẢO</span>
+                    </div>
 
-                    {/* Masked address — only show district/city */}
-                    <p style={{ marginBottom: '6px' }}>
-                      <strong>Địa chỉ:</strong>{' '}
-                      {(() => {
-                        const addr = typeof labelOrder.shipping_address === 'string'
-                          ? labelOrder.shipping_address
-                          : '';
-                        return addr
-                          ? `***, ${addr.split(',').slice(-1)[0].trim()}`
-                          : '***, TP.HCM';
-                      })()}
-                    </p>
+                    {/* Masked address */}
+                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <span style={{ color: '#6b7280', minWidth: '80px', marginTop: '2px' }}>📍 Địa chỉ:</span>
+                      <div>
+                        <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: '600' }}>
+                          {(() => {
+                            const addr = typeof labelOrder.shipping_address === 'string'
+                              ? labelOrder.shipping_address : '';
+                            return addr
+                              ? `***, ${addr.split(',').slice(-1)[0].trim()}`
+                              : '***, TP.HCM';
+                          })()}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>ĐỊA CHỈ ẨN</span>
+                      </div>
+                    </div>
 
                     <div style={{ marginTop: '1rem', padding: '10px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.78rem', color: '#92400e' }}>
-                      🔒 <strong>Bảo mật:</strong> SĐT in trên đơn là số điện thoại ảo tạm thời — hết hiệu lực sau khi giao hàng xong. Địa chỉ đầy đủ bị ẩn.
+                      🔒 <strong>Bảo mật PII:</strong> Đây là thông tin in trên nắp hộp hàng. Tên, SĐT và địa chỉ đều được ẩn danh hóa — người lạ cầm hộp không biết thông tin thật của bạn. Shipper quét mã QR trên App nội bộ mới xem được địa chỉ thật để giao hàng.
                     </div>
                   </div>
                 </div>
