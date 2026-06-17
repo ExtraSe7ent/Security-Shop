@@ -117,7 +117,7 @@ export default function Orders() {
                 {order.shipping_address && (
                   <div className="flex items-center gap-sm text-sm text-secondary">
                     <Truck size={14} />
-                    {t('orders_shipping_to')}: {order.shipping_address}
+                    {t('orders_shipping_to')}: {typeof order.shipping_address === 'string' ? order.shipping_address : JSON.stringify(order.shipping_address)}
                   </div>
                 )}
 
@@ -156,14 +156,14 @@ export default function Orders() {
 
                   {/* Masked / Virtual Info */}
                   <div style={{ fontSize: '0.9rem', color: '#374151' }}>
-                    <p style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '10px' }}>ĐƠN HÀNG #{labelOrder.id}</p>
+                    <p style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '10px' }}>ĐƠN HÀNG #{labelOrder.id ?? labelOrder.order_uuid?.slice(0,8)}</p>
 
                     {/* Virtual Phone — completely different number, not masked real one */}
                     {/* In SECURE demo: we generate a fake number 0287-XXXXXX from the order ID */}
                     <p style={{ marginBottom: '6px' }}>
                       <strong>SĐT giao hàng:</strong>{' '}
                       <span style={{ fontFamily: 'monospace', color: '#059669', fontWeight: '600' }}>
-                        {virtualPhone(labelOrder.id)}
+                        {virtualPhone(labelOrder.id ?? 0)}
                       </span>
                       {' '}<span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '4px' }}>SỐ ẢO</span>
                     </p>
@@ -171,9 +171,14 @@ export default function Orders() {
                     {/* Masked address — only show district/city */}
                     <p style={{ marginBottom: '6px' }}>
                       <strong>Địa chỉ:</strong>{' '}
-                      {labelOrder.shipping_address
-                        ? `***, ${labelOrder.shipping_address.split(',').slice(-1)[0].trim()}`
-                        : '***, TP.HCM'}
+                      {(() => {
+                        const addr = typeof labelOrder.shipping_address === 'string'
+                          ? labelOrder.shipping_address
+                          : '';
+                        return addr
+                          ? `***, ${addr.split(',').slice(-1)[0].trim()}`
+                          : '***, TP.HCM';
+                      })()}
                     </p>
 
                     <div style={{ marginTop: '1rem', padding: '10px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.78rem', color: '#92400e' }}>
