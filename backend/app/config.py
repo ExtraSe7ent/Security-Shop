@@ -16,7 +16,6 @@ load_dotenv()
 class Settings(BaseSettings):
     # Cơ sở dữ liệu
     database_url: str = "postgresql://admin:admin123@localhost:5432/ecommerce_db"
-    redis_url: str = "redis://localhost:6379"
 
     # Bảo mật
     secret_key: str = "securityshop-v2-secret-2024-xyz"

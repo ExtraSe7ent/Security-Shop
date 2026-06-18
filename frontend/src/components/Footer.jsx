@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="container">
         <div className="flex items-center justify-center gap-sm" style={{ marginBottom: '8px' }}>
           <Shield size={16} />
-          <span className="font-semibold">Security Shop</span>
+          <span className="font-semibold">Security Shop - Secure E-Commerce</span>
         </div>
         <p>
           Built for educational purposes — demonstrating web application security vulnerabilities and defenses.
