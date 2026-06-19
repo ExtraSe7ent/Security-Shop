@@ -22,7 +22,7 @@ export default function Navbar() {
           {/* Brand */}
           <Link to="/" className="navbar-brand">
             <Shield size={22} />
-            Security Shop - Secure E-Commerce
+            Security Shop
           </Link>
 
           {/* Navigation Links */}
