@@ -1,5 +1,8 @@
 # Security Shop v2.0
 
+> [!WARNING]
+> **Disclaimer:** This project is intended strictly for educational and research purposes (University Course Project). Do not deploy the BASE mode configuration in any production environment or public network. The vulnerabilities contained herein are real and present significant security risks if exposed.
+
 Security Shop is an intentionally vulnerable E-commerce Web Application designed as a Security Lab. Its primary objective is to demonstrate the critical importance of secure coding practices and the "Defense in Depth" architecture in modern web applications. 
 
 The system allows developers and security professionals to analyze and toggle between two architectural paradigms: BASE (vulnerable) and SECURE (protected).
@@ -61,11 +64,6 @@ In Secure Mode, the application implements a multi-layered security architecture
 ### 6. Man in the Middle (MitM) - Order Data Tampering
 * Vulnerability (Base Mode): Order creation requests are sent without any integrity verification. An attacker positioned in the middle (or using a proxy tool) can intercept the request and inject fake information, modifying shipping addresses, payment details, or quantities before the request reaches the server.
 * Defense (Secure Mode): Implements HMAC-SHA256 request signing. The client generates a cryptographic signature based on the request payload and a shared secret. If an attacker tampers with the data in transit, the signature validation on the backend will fail, and the request will be immediately rejected.
-
----
-
-## Disclaimer
-This project is intended strictly for educational and research purposes. Do not deploy the BASE mode configuration in any production environment or public network. The vulnerabilities contained herein are real and present significant security risks if exposed.
 
 ## Environment Variables (.env)
 Note: The `.env` file committed to this repository contains dummy values (`XXXXXX`) for security reasons. Before running the application locally, you must replace these placeholder values with your actual database connection string, encryption keys, and Gemini API key.
