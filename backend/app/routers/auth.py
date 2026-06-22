@@ -1,5 +1,5 @@
 """
-Router xác thực: Đăng ký, Đăng nhập, Lấy thông tin người dùng hiện tại.
+Auth router: Register, Login, Get current user info.
 """
 
 import uuid
@@ -20,7 +20,7 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
     db: Session = Depends(get_db)
 ) -> User:
-    """Dependency: Trích xuất và xác thực người dùng từ JWT token."""
+    """Dependency: Extract and validate user from JWT token."""
     payload = decode_access_token(credentials.credentials)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -38,8 +38,8 @@ def get_current_user(
 
 @router.post("/register", response_model=TokenResponse)
 def register(data: UserRegister, db: Session = Depends(get_db)):
-    """Đăng ký tài khoản người dùng mới."""
-    # Kiểm tra email đã tồn tại chưa
+    """Register a new user account."""
+    # Check if email already exists
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -70,7 +70,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: UserLogin, db: Session = Depends(get_db)):
-    """Xác thực người dùng và trả về JWT token."""
+    """Authenticate user and return JWT token."""
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, str(user.hashed_password)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -89,5 +89,5 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def get_me(current_user: User = Depends(get_current_user)):
-    """Lấy thông tin hồ sơ người dùng hiện tại."""
+    """Get current user profile information."""
     return current_user

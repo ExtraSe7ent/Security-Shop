@@ -1,8 +1,4 @@
-"""
-Router đơn hàng — LỖ HỔNG #2 & #3:
-  - Business Logic Flaw: Giá/số lượng do frontend kiểm soát (BASE) so với kiểm tra phía server (SECURE)
-  - IDOR: ID số nguyên tuần tự + không kiểm tra quyền sở hữu (BASE) so với UUID + kiểm tra quyền sở hữu + che giấu dữ liệu (SECURE)
-"""
+"""Orders Router"""
 
 import uuid
 import logging
@@ -20,7 +16,7 @@ from app.security import mask_phone, mask_address, verify_order_hmac
 
 router = APIRouter(prefix="/api/orders", tags=["Orders"])
 
-# ── Ghi log kiểm tra (CHẾ ĐỘ SECURE) ──────────────────────────────────────────
+# SECURE: Audit Logging
 audit_logger = logging.getLogger("security_audit")
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +24,6 @@ logging.basicConfig(
 )
 
 def _audit_log(event: str, user_id, detail: str):
-    """Lớp SECURE 4: Ghi log kiểm tra có cấu trúc — đưa vào SIEM trong môi trường production."""
     audit_logger.warning(
         f"EVENT={event} | USER={user_id} | DETAIL={detail} | TIMESTAMP={datetime.now(timezone.utc).isoformat()}"
     )
@@ -42,9 +37,6 @@ def create_order(
     db: Session = Depends(get_db)
 ):
     if is_secure():
-        # Lớp SECURE 4 (MỚI): Kiểm tra toàn vẹn request bằng HMAC
-        # Ngăn kẻ tấn công MitM giả mạo giá/số lượng trong quá trình truyền.
-        # Client phải ký nội dung request bằng khóa bí mật dùng chung trước khi gửi.
         sig = request.headers.get("X-Signature", "")
         ts  = request.headers.get("X-Timestamp", "")
         body_dict = data.model_dump(exclude_none=True)
@@ -89,14 +81,14 @@ def create_order(
             raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
 
         if is_secure():
-            # SECURE: từ chối số lượng âm/bằng 0 và bỏ qua giá từ frontend
+            # SECURE: Reject negative/zero quantity and ignore frontend price
             if item.quantity <= 0:
                 raise HTTPException(status_code=400, detail="Quantity must be greater than 0")
             if product.stock < item.quantity:
                 raise HTTPException(status_code=400, detail=f"Insufficient stock for {product.name}")
-            actual_price = product.price  # luôn lấy từ DB, không bao giờ từ frontend
+            actual_price = product.price  # SECURE: Always fetch from DB
         else:
-            # BASE (LỖ HỔNG): tin tưởng giá từ frontend và cho phép mọi số lượng
+            # BASE: Vulnerability - Trust frontend price and allow any quantity
             actual_price = item.price if item.price is not None else product.price
 
         subtotal = actual_price * item.quantity
@@ -109,8 +101,6 @@ def create_order(
             "quantity": item.quantity,
             "subtotal": subtotal,
         })
-        # Giảm tồn kho ngay lập tức; ở chế độ BASE số lượng âm có thể khiến tồn kho âm
-        # nhưng chúng ta giới hạn ở 0 để tránh hỏng dữ liệu (lỗ hổng là thao túng giá, không phải tồn kho)
         product.stock = max(0, product.stock - item.quantity)  # type: ignore
 
     payment_last_four = ""
@@ -123,8 +113,6 @@ def create_order(
         pm = db.query(PaymentMethod).filter(PaymentMethod.id == pm_uuid).first()
         if pm:
             if is_secure():
-                # Lớp SECURE 4: Kiểm tra quyền sở hữu phương thức thanh toán
-                # Đảm bảo phương thức thanh toán thuộc về người dùng đang yêu cầu
                 if pm.user_id != current_user.id:
                     _audit_log(
                         "PAYMENT_METHOD_IDOR",
@@ -141,9 +129,8 @@ def create_order(
                     )
             payment_last_four = pm.last_four
 
-    # Lớp SECURE 4: Giới hạn tổng đơn hàng — ngăn chặn tấn công DoS kinh tế / đơn hàng gian lận lớn
     if is_secure():
-        MAX_ORDER_TOTAL = 10000.0  # Giới hạn USD cho một đơn hàng
+        MAX_ORDER_TOTAL = 10000.0  # USD limit for an order
         if total > MAX_ORDER_TOTAL:
             raise HTTPException(
                 status_code=400,
@@ -194,10 +181,6 @@ def get_order(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    CHẾ ĐỘ BASE:   ID số nguyên, không kiểm tra quyền sở hữu — bất kỳ người dùng nào cũng có thể xem mọi đơn hàng.
-    CHẾ ĐỘ SECURE: Truy cập bằng UUID + kiểm tra quyền sở hữu + che giấu dữ liệu.
-    """
     if is_secure():
         try:
             order_uuid = uuid.UUID(order_id)
@@ -236,7 +219,6 @@ def get_order(
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
 
-        # Không kiểm tra quyền sở hữu — bất kỳ người dùng đã xác thực nào đều có thể xem bất kỳ đơn hàng nào bằng cách đoán ID
         return {
             "order": _order_to_dict(order),
             "mode": "base",
@@ -251,11 +233,6 @@ def get_order_payment_info(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    LEO THANG IDOR: Lộ thông tin thẻ tín dụng đầy đủ.
-    CHẾ ĐỘ BASE:   ID tuần tự, không kiểm tra quyền sở hữu → số thẻ đầy đủ ở dạng văn bản thuần.
-    CHẾ ĐỘ SECURE: UUID + kiểm tra quyền sở hữu → chỉ thông tin thẻ đã che giấu.
-    """
     if is_secure():
         try:
             order_uuid = uuid.UUID(order_id)
@@ -297,7 +274,6 @@ def get_order_payment_info(
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
 
-        # Không kiểm tra quyền sở hữu — số thẻ đầy đủ bị lộ
         card_info = {}
         if order.payment_last_four:
             pm = db.query(PaymentMethod).filter(
@@ -326,7 +302,7 @@ def get_order_payment_info(
 
 
 def _order_to_dict(o: Order) -> dict:
-    """Dữ liệu đơn hàng đầy đủ (chế độ base — lộ mọi thứ)."""
+    """Full order data (base mode — exposes everything)."""
     return {
         "id": o.id,
         "order_uuid": str(o.order_uuid),
@@ -341,7 +317,7 @@ def _order_to_dict(o: Order) -> dict:
 
 
 def _order_to_dict_masked(o: Order) -> dict:
-    """Dữ liệu đơn hàng đã che giấu (chế độ secure — ẩn các trường nhạy cảm)."""
+    """Masked order data (secure mode — hides sensitive fields)."""
     return {
         "id": o.id,
         "order_uuid": str(o.order_uuid),
@@ -355,7 +331,7 @@ def _order_to_dict_masked(o: Order) -> dict:
     }
 
 
-# ─── Endpoints dành cho Shipper (Demo phòng thủ Lớp 3 chống MitM) ───────────────────────
+
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -366,14 +342,9 @@ def get_order_for_shipper(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Lấy dữ liệu đơn hàng CHƯA CHE GIẤU chỉ dành cho shipper.
-    Shipper quét mã QR để lấy ID đơn hàng, sau đó lấy dữ liệu thật ở đây.
-    """
     if current_user.role != "shipper" and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Access denied. Shipper role required.")
     
-    # Cho phép tra cứu bằng cả ID số nguyên hoặc UUID
     try:
         if "-" in order_id:
             order = db.query(Order).filter(Order.order_uuid == uuid.UUID(order_id)).first()
@@ -385,7 +356,6 @@ def get_order_for_shipper(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    # Trả về dữ liệu chưa che giấu để shipper có thể giao hàng
     return {
         "id": order.id,
         "order_uuid": str(order.order_uuid),
@@ -405,7 +375,6 @@ def update_order_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Shipper cập nhật trạng thái giao hàng."""
     if current_user.role != "shipper" and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Access denied. Shipper role required.")
 

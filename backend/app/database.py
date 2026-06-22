@@ -1,5 +1,5 @@
 """
-Quản lý engine và phiên làm việc cơ sở dữ liệu.
+Database engine and session management.
 """
 
 from sqlalchemy import create_engine
@@ -20,12 +20,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 class Base(DeclarativeBase):
-    """Base khai báo theo phong cách SQLAlchemy 2.0 — thay thế hàm declarative_base() đã lỗi thời."""
+    """SQLAlchemy 2.0 declarative base."""
     pass
 
 
 def get_db():
-    """Dependency cung cấp một phiên cơ sở dữ liệu cho mỗi request."""
+    """Dependency to provide a database session per request."""
     db = SessionLocal()
     try:
         yield db
@@ -34,5 +34,5 @@ def get_db():
 
 
 def init_db():
-    """Tạo tất cả các bảng được định nghĩa bởi các model SQLAlchemy."""
+    """Create all tables defined by SQLAlchemy models."""
     Base.metadata.create_all(bind=engine)

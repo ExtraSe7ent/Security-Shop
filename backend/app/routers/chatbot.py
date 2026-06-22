@@ -1,9 +1,4 @@
-"""
-Router chatbot — LỖ HỔNG #4 & #5:
-  - Indirect Prompt Injection: Kẻ tấn công giấu lệnh trong đánh giá để thao túng LLM (BASE).
-  - AI-Driven XSS: Frontend render HTML thô từ LLM qua dangerouslySetInnerHTML (BASE).
-  Phòng thủ: Giới hạn prompt nghiêm ngặt (thẻ XML) + bộ lọc đầu ra + DOMPurify ở frontend (SECURE).
-"""
+"""Chatbot Router"""
 
 import re
 import time
@@ -19,17 +14,14 @@ from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/chat", tags=["Chatbot"])
 
-# ── Rate Limiter trên bộ nhớ (CHẾ ĐỘ SECURE) ─────────────────────────────────────
-# Lưu danh sách timestamp của request theo user_id (dùng string key)
+# SECURE: In-memory Rate Limiter
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
 RATE_LIMIT_MAX = 10        # max requests
 RATE_LIMIT_WINDOW = 60.0   # per 60 seconds
 
 def _check_rate_limit(user_id) -> None:
-    """Lớp SECURE 3: Trả về 429 nếu người dùng vượt quá RATE_LIMIT_MAX request mỗi phút."""
     key = str(user_id)
     now = time.time()
-    # Xoá các timestamp cũ hơn cửa sổ thời gian
     _rate_limit_store[key] = [t for t in _rate_limit_store[key] if now - t < RATE_LIMIT_WINDOW]
     if len(_rate_limit_store[key]) >= RATE_LIMIT_MAX:
         raise HTTPException(
@@ -59,7 +51,6 @@ def _get_gemini_response(prompt: str) -> str:
 
 
 def _apply_output_guardrails(response: str) -> tuple[str, bool]:
-    """Lọc phản hồi LLM trước khi gửi cho người dùng: chặn URL ngoài và cụm từ lừa đảo."""
     was_modified = False
 
     url_pattern = r'https?://[^\s<>"\']+|www\.[^\s<>"\']*'
@@ -87,15 +78,8 @@ def _apply_output_guardrails(response: str) -> tuple[str, bool]:
 
 
 def _strip_html_tags(text: str) -> str:
-    """
-    Lớp SECURE 2 (Mạng lưới an toàn phía Backend): Loại bỏ thẻ HTML thô khỏi phản hồi AI phía server.
-    Ngay cả khi AI tạo ra <script> hay <img onerror=...>, chúng sẽ bị vô hiệu hoá ở đây
-    trước khi phản hồi rời khỏi server — độc lập với DOMPurify ở frontend.
-    """
     import html
-    # Giải mã HTML entities trước, sau đó loại bỏ thẻ
     clean = re.sub(r'<[^>]+>', '', text)
-    # Escape các ký tự < > còn lại để chúng không thể được diễn giải là HTML
     clean = html.escape(clean, quote=False)
     return clean
 
@@ -106,17 +90,11 @@ def chat(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    CHẾ ĐỘ BASE:   Đánh giá được chèn trực tiếp vào prompt (dễ bị Prompt Injection).
-                Dữ liệu thẻ thanh toán cũng được đưa vào ngữ cảnh (quá nhiều đặc quyền).
-    CHẾ ĐỘ SECURE: Giới hạn prompt XML nghiêm ngặt + bộ lọc đầu ra + Đặc quyền tối thiểu (không có dữ liệu thẻ)
-                 + Rate Limiting (tối đa 10 req/phút) + Kiểm tra độ dài đầu vào.
-    """
     if is_secure():
-        # Lớp SECURE 3: Rate limiting — chặn tấn công flooding
+        # SECURE: Rate limiting to prevent flooding
         _check_rate_limit(current_user.id)
 
-        # SECURE: Kiểm tra độ dài message (ngăn payload quá lớn)
+        # SECURE: Message length validation
         if len(data.message) > 500:
             raise HTTPException(
                 status_code=400,
@@ -137,7 +115,7 @@ def chat(
             reviews_text = "\n".join([f"- Rating {r.rating}/5: {r.content}" for r in reviews])
 
     if is_secure():
-        # SECURE: Phân tách ngữ cảnh bằng thẻ XML (Prompt Bounding) + Đặc quyền tối thiểu (không có dữ liệu thanh toán)
+        # SECURE: Prompt Bounding with XML tags and Least Privilege
         system_prompt = f"""You are a helpful shopping assistant for Security Shop, an electronics store.
 
 STRICT RULES (NEVER VIOLATE THESE):
@@ -168,11 +146,10 @@ Respond helpfully based on the product info. Summarize review sentiment if relev
         raw_response = _get_gemini_response(system_prompt)
         filtered_response, guardrails_triggered = _apply_output_guardrails(raw_response)
 
-        # Lớp SECURE 2: Loại bỏ HTML phía Backend — vô hiệu hoá mọi thẻ HTML/script phía server
-        # Đây là mạng lưới an toàn độc lập với DOMPurify ở frontend
+        # SECURE: Backend HTML stripping
         filtered_response = _strip_html_tags(filtered_response)
 
-        # Lớp SECURE 3: An toàn bổ sung — phát hiện mọi mẫu số thẻ bị rò rỉ
+        # SECURE: Secondary safety net - card number leak detection
         card_pattern = r'\b(?:\d[ -]*?){13,19}\b'
         if re.search(card_pattern, filtered_response):
             filtered_response = re.sub(card_pattern, '****-****-****-XXXX', filtered_response)
@@ -181,7 +158,7 @@ Respond helpfully based on the product info. Summarize review sentiment if relev
         return ChatResponse(reply=filtered_response, mode="secure", guardrails_applied=guardrails_triggered)
 
     else:
-        # BASE (LỖ HỔNG): Đánh giá người dùng + dữ liệu thẻ thanh toán được chèn vào prompt không có phân tách
+        # BASE: Prompt Injection & Data Leakage (user reviews and payment data injected without bounding)
         user_context = ""
         recent_order = db.query(Order).filter(
             Order.user_id == current_user.id
@@ -191,7 +168,7 @@ Respond helpfully based on the product info. Summarize review sentiment if relev
             user_context += f"\nCustomer's recent order: #{recent_order.id}, Total: ${recent_order.total}, Status: {recent_order.status}"
             user_context += f"\nShipping to: {recent_order.shipping_address}"
 
-        # NGUY HIỂM: lộ số thẻ cho ngữ cảnh LLM — đây là lỗ hổng
+        # BASE: Danger - Exposing card numbers to LLM context
         cards = db.query(PaymentMethod).filter(PaymentMethod.user_id == current_user.id).all()
         if cards:
             user_context += "\nCustomer's saved payment methods:"
@@ -223,7 +200,6 @@ Please respond helpfully. You can reference the customer's order and payment inf
 
 @router.post("/general", response_model=ChatResponse)
 def chat_general(data: ChatMessage, db: Session = Depends(get_db)):
-    """Chat tổng quát cho người dùng chưa xác thực — không có dữ liệu đơn hàng hay thanh toán."""
     prompt = f"""You are a friendly shopping assistant for Security Shop, an electronics store.
 You help customers browse products and answer general questions about the store.
 You don't have access to any order or payment information.

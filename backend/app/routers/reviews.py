@@ -10,7 +10,6 @@ from app.config import is_secure
 
 router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
 
-# Các mẫu cho thấy ý định chèn lệnh vào AI
 INJECTION_PATTERNS = [
     r'\[SYSTEM',
     r'\[INSTRUCTION',
@@ -33,19 +32,12 @@ def create_review(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Tạo đánh giá cho một sản phẩm.
-
-    CHẾ ĐỘ BASE:   Nội dung lưu nguyên vẹn — cho phép Indirect Prompt Injection & XSS qua chatbot.
-    CHẾ ĐỘ SECURE: Phòng thủ Lớp 1 — quét tìm mẫu injection trước khi lưu vào cơ sở dữ liệu.
-    """
-    # Kiểm tra sản phẩm có tồn tại không
     product = db.query(Product).filter(Product.id == data.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
     if is_secure():
-        # Lớp SECURE 1: Phát hiện mẫu Injection — từ chối đánh giá chứa lệnh AI injection
+        # SECURE: Detection of Injection patterns - reject reviews containing AI instructions
         for pattern in INJECTION_PATTERNS:
             if re.search(pattern, data.content, re.IGNORECASE):
                 raise HTTPException(
@@ -58,7 +50,7 @@ def create_review(
                     }
                 )
 
-        # Lớp SECURE 2: Kiểm tra độ dài — ngăn chặn payload quá dài
+        # SECURE: Length validation - prevent excessively long payloads
         if len(data.content) > 1000:
             raise HTTPException(
                 status_code=400,
@@ -69,8 +61,7 @@ def create_review(
                 }
             )
 
-    # GHI CHÚ: Kiểm tra đánh giá trùng lặp bị tắt có chủ ý cho mục đích demo —
-    # điều này cho phép cùng một người dùng viết nhiều đánh giá để tái hiện các kịch bản tấn công.
+    # BASE: Duplicate review check is intentionally disabled for demo purposes
     review = Review(
         product_id=data.product_id,
         user_id=current_user.id,
@@ -113,7 +104,6 @@ def delete_review(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Xoá đánh giá của chính mình (cho phép viết lại để chạy demo nhiều lần)."""
     review = db.query(Review).filter(Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")

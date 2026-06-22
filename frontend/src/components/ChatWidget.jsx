@@ -9,7 +9,7 @@ import { useMode } from '../contexts/ModeContext';
 export default function ChatWidget() {
   const location = useLocation();
   const match = location.pathname.match(/\/products\/(\d+)/);
-  const productId = match ? match[1] : null; // trích xuất product ID từ URL
+  const productId = match ? match[1] : null;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -37,8 +37,6 @@ export default function ChatWidget() {
     setIsTyping(true);
 
     try {
-      // Truyền product_id để chatbot tải đánh giá sản phẩm vào ngữ cảnh
-      // Đây là vector tấn công cho demo Prompt Injection (#4 & #5)
       const res = await chatAPI.send(userMessage, productId ? parseInt(productId) : null);
       const botResponse = res.data.reply;
       const isInjected = res.data.guardrails_applied || false;
@@ -70,7 +68,7 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Nút Chat FAB */}
+
       {!isOpen && (
         <button
           className="chat-fab"
@@ -81,7 +79,7 @@ export default function ChatWidget() {
         </button>
       )}
 
-      {/* Cửa sổ Chat */}
+
       {isOpen && (
         <div className="chat-window" id="chat-window">
           <div className="chat-header">

@@ -1,9 +1,4 @@
-"""
-Router sản phẩm — LỖ HỔNG #1: SQL Injection → Đánh cắp dữ liệu thẻ tín dụng
-
-CHẾ ĐỘ BASE:   Nối chuỗi SQL thô → kẻ tấn công có thể UNION-inject và dump dữ liệu thẻ.
-CHẾ ĐỘ SECURE: SQLAlchemy ORM (truy vấn tham số hoá) + card_number_plain luôn trống.
-"""
+"""Products Router"""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -28,16 +23,12 @@ def search_products(
     q: str = Query("", description="Search query"),
     db: Session = Depends(get_db)
 ):
-    """
-    CHẾ ĐỘ BASE:   SQL thô — dễ bị tấn công SQL Injection dựa trên UNION.
-    CHẾ ĐỘ SECURE: Truy vấn ORM tham số hoá + lưu thẻ mã hoá AES-256.
-    """
     if not q:
         products = db.query(Product).all()
         return {"results": [_product_to_dict(p) for p in products], "mode": "secure" if is_secure() else "base"}
 
     if is_secure():
-        # Lớp SECURE 1a: Kiểm tra độ dài đầu vào — từ chối truy vấn quá dài
+        # SECURE: Input length validation - reject overly long queries
         if len(q) > 200:
             raise HTTPException(
                 status_code=400,
@@ -48,7 +39,7 @@ def search_products(
                 }
             )
 
-        # Lớp SECURE 1b: Kiểm tra đầu vào kiểu WAF — chặn các mẫu từ khoá SQL injection
+        # SECURE: WAF-style input inspection - block SQL injection keyword patterns
         SQL_INJECTION_PATTERNS = [
             r'\bunion\b', r'\bselect\b', r'\bdrop\b', r'\binsert\b',
             r'\bupdate\b', r'\bdelete\b', r'\bexec\b', r'\bexecute\b',
@@ -66,7 +57,7 @@ def search_products(
                     }
                 )
 
-        # Lớp SECURE 2: Truy vấn ORM tham số hoá — injection là bất khả thi ngay cả khi không có Lớp 1
+        # SECURE: Parameterized ORM queries - injection is impossible even without Layer 1
         products = db.query(Product).filter(Product.name.ilike(f"%{q}%")).all()
 
         sample_card = db.query(PaymentMethod).first()
@@ -88,7 +79,7 @@ def search_products(
         }
 
     else:
-        # BASE: SQL thô với nối chuỗi — cố ý tạo lỗ hổng để demo.
+        # BASE: Raw SQL with concatenation - intentionally vulnerable for demo.
         raw_query = f"SELECT id, name, name_vi, description, description_vi, price, image_url, category, stock, rating FROM products WHERE name ILIKE '%{q}%'"
         try:
             result = db.execute(text(raw_query))

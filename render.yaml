@@ -7,9 +7,9 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        sync: false # You will provide the Supabase Postgres URL in the Render Dashboard
+        sync: false
       - key: GEMINI_API_KEY
-        sync: false # You will provide the Gemini API Key in the Render Dashboard
+        sync: false
       - key: HMAC_SECRET
         value: "securityshop-hmac-secret-2024"
       - key: MODE

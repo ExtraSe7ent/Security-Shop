@@ -1,6 +1,4 @@
-"""
-Các schema Pydantic để xác thực request/response.
-"""
+"""Pydantic schemas for request/response validation."""
 
 import uuid
 from datetime import datetime
@@ -8,7 +6,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
-# ─── Xác thực ────────────────────────────────────────────────────────────────
+# --- Auth ---
 class UserRegister(BaseModel):
     email: str
     username: str
@@ -40,7 +38,7 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
-# ─── Sản phẩm ────────────────────────────────────────────────────────────
+# --- Products ---
 class ProductOut(BaseModel):
     id: int
     name: str
@@ -57,7 +55,7 @@ class ProductOut(BaseModel):
         from_attributes = True
 
 
-# ─── Phương thức thanh toán ────────────────────────────────────────────────────
+# --- Payment Methods ---
 class PaymentMethodCreate(BaseModel):
     card_number: str = Field(..., min_length=13, max_length=19)
     card_holder: str
@@ -67,7 +65,7 @@ class PaymentMethodCreate(BaseModel):
 
 class PaymentMethodOut(BaseModel):
     id: uuid.UUID
-    card_display: str  # đã che: ****-****-****-1234
+    card_display: str  # masked: ****-****-****-1234
     card_holder: str
     expiry: str
     card_type: str
@@ -77,11 +75,11 @@ class PaymentMethodOut(BaseModel):
         from_attributes = True
 
 
-# ─── Đơn hàng ──────────────────────────────────────────────────────────────
+# --- Orders ---
 class OrderItemCreate(BaseModel):
     product_id: int
     quantity: int = 1
-    price: Optional[float] = None  # CHẾ ĐỘ BASE: giá do frontend kiểm soát (demo lỗ hổng)
+    price: Optional[float] = None  # BASE MODE: price controlled by frontend (vulnerability demo)
 
 
 class OrderCreate(BaseModel):
@@ -106,7 +104,7 @@ class OrderOut(BaseModel):
         from_attributes = True
 
 
-# ─── Đánh giá ─────────────────────────────────────────────────────────────
+# --- Reviews ---
 class ReviewCreate(BaseModel):
     product_id: int
     content: str
@@ -126,19 +124,19 @@ class ReviewOut(BaseModel):
         from_attributes = True
 
 
-# ─── Chatbot ─────────────────────────────────────────────────────────────
+# --- Chatbot ---
 
 class ChatMessage(BaseModel):
     message: str
-    product_id: Optional[int] = None  # Nếu hỏi về một sản phẩm cụ thể
+    product_id: Optional[int] = None  # If inquiring about a specific product
 
 
 class ChatResponse(BaseModel):
     reply: str
-    mode: str  # "base" hoặc "secure"
+    mode: str  # "base" or "secure"
     guardrails_applied: bool = False
 
 
-# ─── Chuyển đổi chế độ ─────────────────────────────────────────────────────────
+# --- Mode Switch ---
 class ModeSwitch(BaseModel):
-    mode: str  # "base" hoặc "secure"
+    mode: str  # "base" or "secure"

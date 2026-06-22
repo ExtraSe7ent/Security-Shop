@@ -1,6 +1,4 @@
-"""
-Router phương thức thanh toán — Thêm/xem thẻ tín dụng với mã hoá.
-"""
+"""Payments Router"""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -22,10 +20,10 @@ def add_payment_method(
     db: Session = Depends(get_db)
 ):
     """
-    Thêm thẻ tín dụng mới.
+    Add a new credit card.
 
-    CHẾ ĐỘ BASE:   Số thẻ lưu dạng VĂN BẢN THUẦN (card_number_plain)
-    CHẾ ĐỘ SECURE: Số thẻ được mã hoá bằng AES-256 (card_number_encrypted)
+    BASE MODE:   Card number stored in PLAIN TEXT (card_number_plain)
+    SECURE MODE: Card number is encrypted with AES-256 (card_number_encrypted)
     """
     last_four = data.card_number[-4:]
 
@@ -38,11 +36,11 @@ def add_payment_method(
     )
 
     if is_secure():
-        # Secure: mã hoá số thẻ
+        # SECURE: Encrypt card number
         pm.card_number_encrypted = encrypt_card_number(data.card_number)
-        pm.card_number_plain = ""  # Không bao giờ lưu văn bản thuần
+        pm.card_number_plain = ""  # SECURE: Never store plain text
     else:
-        # Base: lưu văn bản thuần (có lỗ hổng!)
+        # BASE: Vulnerability - Store plain text
         pm.card_number_plain = data.card_number
         pm.card_number_encrypted = ""
 
@@ -64,7 +62,6 @@ def list_payment_methods(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Liệt kê các phương thức thanh toán của người dùng hiện tại (luôn được che giấu)."""
     methods = db.query(PaymentMethod).filter(
         PaymentMethod.user_id == current_user.id
     ).all()
@@ -88,13 +85,6 @@ def compare_card_storage(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    ENDPOINT DEMO: So sánh cách lưu dữ liệu thẻ trong chế độ base và secure.
-
-    Minh hoạ trực quan Lỗ hổng #2 (Lưu trữ dữ liệu thẻ không an toàn):
-    - Ở chế độ BASE:   card_number_plain chứa số thẻ THẬT → có thể đọc nếu bị đánh cắp
-    - Ở chế độ SECURE: card_number_plain TRỐNG, chỉ tồn tại ciphertext AES-256 → không đọc được
-    """
     cards = db.query(PaymentMethod).filter(
         PaymentMethod.user_id == current_user.id
     ).all()

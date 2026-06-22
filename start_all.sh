@@ -7,42 +7,42 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' 
 
-echo -e "${YELLOW}🚀 Đang khởi động toàn bộ hệ thống Security-Shop...${NC}\n"
+echo -e "${YELLOW}🚀 Starting Security-Shop...${NC}\n"
 
-echo -e "${BLUE}[1/4] Khởi động PostgreSQL qua Docker...${NC}"
+echo -e "${BLUE}[1/4] Starting PostgreSQL via Docker...${NC}"
 docker-compose up -d
 
-echo -e "${YELLOW}⏳ Chờ PostgreSQL khởi động...${NC}"
+echo -e "${YELLOW}⏳ Waiting for PostgreSQL...${NC}"
 until docker-compose exec -T postgres pg_isready -U admin -d ecommerce_db > /dev/null 2>&1; do
   sleep 1
 done
-echo -e "${GREEN}✅ PostgreSQL đã sẵn sàng.${NC}"
+echo -e "${GREEN}✅ PostgreSQL ready.${NC}"
 
-echo -e "${BLUE}[2/4] Khởi động Hacker Server...${NC}"
+echo -e "${BLUE}[2/4] Starting Hacker Server...${NC}"
 cd hacker_server
 node server.js &
 HACKER_PID=$!
 cd ..
 
-echo -e "${BLUE}[3/4] Khởi động Backend (FastAPI)...${NC}"
+echo -e "${BLUE}[3/4] Starting Backend (FastAPI)...${NC}"
 cd backend
 source venv/bin/activate
 uvicorn app.main:app --reload &
 BACKEND_PID=$!
 cd ..
 
-echo -e "${BLUE}[4/4] Khởi động Frontend (React/Vite)...${NC}"
+echo -e "${BLUE}[4/4] Starting Frontend (React/Vite)...${NC}"
 cd frontend
 npm run dev &
 FRONTEND_PID=$!
 cd ..
 
-echo -e "\n${GREEN}✅ HOÀN TẤT! Toàn bộ hệ thống đã chạy thành công.${NC}"
+echo -e "\n${GREEN}✅ DONE! All systems running.${NC}"
 echo -e "🌐 Frontend:    http://localhost:5173"
 echo -e "⚙️  Backend:     http://localhost:8000"
 echo -e "😈 Hacker Server: http://localhost:4000"
-echo -e "\n${RED}🛑 BẤM Ctrl + C để tắt toàn bộ hệ thống.${NC}\n"
+echo -e "\n${RED}🛑 Press Ctrl + C to stop all systems.${NC}\n"
 
-trap "echo -e '\n${RED}🛑 Đang tắt toàn bộ hệ thống...${NC}'; kill $BACKEND_PID $HACKER_PID $FRONTEND_PID; docker-compose stop; exit 0" SIGINT SIGTERM
+trap "echo -e '\n${RED}🛑 Stopping all systems...${NC}'; kill $BACKEND_PID $HACKER_PID $FRONTEND_PID; docker-compose stop; exit 0" SIGINT SIGTERM
 
 wait
