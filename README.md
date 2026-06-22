@@ -1,4 +1,4 @@
-# Security Shop v2.0
+# Security Shop
 
 Security Shop is an intentionally vulnerable E-commerce Web Application designed as a Security Lab. Its primary objective is to demonstrate the critical importance of secure coding practices and the "Defense in Depth" architecture in modern web applications. 
 
