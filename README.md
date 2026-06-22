@@ -1,4 +1,4 @@
-# Security Shop v2.0
+# Security Shop
 
 > [!WARNING]
 > **Disclaimer:** This project is intended strictly for educational and research purposes (University Course Project). Do not deploy the BASE mode configuration in any production environment or public network. The vulnerabilities contained herein are real and present significant security risks if exposed.
