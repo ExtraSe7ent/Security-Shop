@@ -1,1 +1,0 @@
-# Security-Shop Middleware Package
