@@ -10,6 +10,16 @@ The system allows developers and security professionals to analyze and toggle be
 ## Live Demonstration
 * Frontend Application: https://security-shop-seven.vercel.app/
 
+### Sample Accounts
+To explore the application, you can log in using any of the following pre-configured accounts:
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | `admin@securityshop.com` | `admin123` |
+| **Customer** | `alice@example.com` | `alice123` |
+| **Customer** | `bob@example.com` | `bob123` |
+| **Shipper** | `shipper@example.com` | `shipper123` |
+
 ---
 
 ## Architecture & Technology Stack
